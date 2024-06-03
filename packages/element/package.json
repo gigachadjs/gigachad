@@ -6,6 +6,9 @@
     "build": "tsc --build ",
     "dev": "tsc --build  --watch"
   },
+  "dependencies": {
+    "@gigachad/support": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20.11.24",
     "typescript": "^5.3.3"
