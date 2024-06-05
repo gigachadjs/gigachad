@@ -5,3 +5,7 @@ export function dasherize(input: string) {
     .replace(/^-|-$/, "")
     .toLowerCase();
 }
+
+export function dasherizeFromCamelCase(input: string) {
+  return input.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
