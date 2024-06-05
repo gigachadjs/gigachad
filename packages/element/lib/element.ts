@@ -1,5 +1,7 @@
-import { dasherizeFromCamelCase } from "@gigachad/support";
+import { dasherize } from "@gigachad/support";
 import { decode, encode } from "./encoding";
+import { Signal, signal } from "@preact/signals-core";
+import internal from "stream";
 
 export interface PropertyInfo<TypeHint = unknown> {
   type: TypeHint;
@@ -14,7 +16,13 @@ export abstract class ChadElement extends HTMLElement {
   static attributesToProperties: Map<string, PropertyKey>;
   static propertiesToAttributes: Map<PropertyKey, string>;
 
-  private propertyStore: Map<PropertyKey, unknown> = new Map();
+  private propertyStore: Map<PropertyKey, Signal<unknown>> = new Map();
+
+  connected() {}
+
+  private connectedCallback() {
+    this.connected();
+  }
 
   private attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     this.setPropertyFromAttribute(name, oldValue, newValue);
@@ -31,21 +39,27 @@ export abstract class ChadElement extends HTMLElement {
 
     this.properties.set(key, options);
 
-    const attr = dasherizeFromCamelCase(String(key));
+    const attr = dasherize(String(key));
 
     this.attributesToProperties.set(attr, key);
     this.propertiesToAttributes.set(key, attr);
 
     return {
       get(this: ChadElement) {
-        return this.propertyStore.get(key);
+        return this.propertyStore.get(key)?.value;
       },
       set(this: ChadElement, value: unknown) {
-        console.log("yo");
+        let internalSignal = this.propertyStore.get(key);
 
-        const oldValue = this.propertyStore.get(key);
+        if (!internalSignal) {
+          internalSignal = signal(null);
 
-        this.propertyStore.set(key, value);
+          this.propertyStore.set(key, internalSignal);
+        }
+
+        const oldValue = internalSignal.value;
+
+        internalSignal.value = value;
 
         this.updatePropertyType(key, value);
         this.setAttributeFromProperty(key, oldValue, value);
@@ -80,13 +94,24 @@ export abstract class ChadElement extends HTMLElement {
     if (!key) return;
 
     if (newValue === null || newValue === undefined) {
-      this.propertyStore.set(key, null);
+      this.propertyStore.delete(key);
     } else {
       const type = ctor.properties.get(key)?.type;
 
       if (!type) return;
 
-      this.propertyStore.set(key, decode(newValue, type));
+      let internalSignal = this.propertyStore.get(key);
+
+      const value = decode(newValue, type);
+
+      if (!internalSignal) {
+        internalSignal = signal(value);
+
+        this.propertyStore.set(key, internalSignal);
+        return;
+      }
+
+      internalSignal.value = value;
     }
   }
 
