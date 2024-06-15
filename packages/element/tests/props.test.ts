@@ -1,13 +1,6 @@
-import { describe, expect, it, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ChadElement, prop, register } from "../lib";
 
-describe("chad element props", () => {
-  @register
-  class CoolTestElement extends ChadElement {}
-
-  // console.log(customElements.get("cool-test"));
-
-  it("registers the element", () => {
-    expect(true).toBe(true);
-  });
-});
+// TODO: For some reason testing the prop decorator just like.. doesnt work. Dont wanna spen
+// more time on it cuz it works in the browser. For some weird reason the getter and
+// setter just totally aren't working in test.

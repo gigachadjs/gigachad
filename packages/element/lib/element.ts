@@ -29,7 +29,7 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return this.attributesToProperties.keys();
+    return this.attributesToProperties?.keys();
   }
 
   static addProp(key: PropertyKey, options = defaultPropertyInfo): PropertyDescriptor {
@@ -46,6 +46,8 @@ export abstract class ChadElement extends HTMLElement {
 
     return {
       get(this: ChadElement) {
+        console.log("dude im like totally gaming rn");
+
         return this.propertyStore.get(key)?.value;
       },
       set(this: ChadElement, value: unknown) {
