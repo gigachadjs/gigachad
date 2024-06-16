@@ -1,7 +1,7 @@
-import { ChadElement, PropertyInfo } from "../element";
+import { ChadElement, chadElementConstructor } from "../element";
 
 export function prop(classObject: Object, key: PropertyKey) {
-  const descriptor = (classObject.constructor as typeof ChadElement).addProp(key);
+  const descriptor = chadElementConstructor(classObject).addProp(key);
 
   Object.defineProperty(classObject, key, descriptor);
 }

@@ -1,5 +1,5 @@
 import { dasherize } from "@gigachad/support";
-import { ChadElement } from "../element";
+import { ChadElement, chadElementConstructor } from "../element";
 
 type Constructor<T> = {
   new (...args: any[]): T;
@@ -16,6 +16,8 @@ export function register(classObject: Constructor<ChadElement>) {
       Gigachad element names require two words, such as SuperCoolElement.
     `);
   }
+
+  (classObject as unknown as typeof ChadElement).chadName = name;
 
   customElements.define(name, classObject);
 }

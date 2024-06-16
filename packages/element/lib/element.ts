@@ -1,20 +1,29 @@
 import { dasherize } from "@gigachad/support";
 import { decode, encode } from "./encoding";
 import { Signal, signal } from "@preact/signals-core";
-import internal from "stream";
 
-export interface PropertyInfo<TypeHint = unknown> {
+export function chadElementConstructor(object: Object) {
+  return object.constructor as typeof ChadElement;
+}
+
+interface PropDescriptor<TypeHint = unknown> {
   type: TypeHint;
 }
 
-const defaultPropertyInfo: PropertyInfo = {
+const defaultPropDescriptor: PropDescriptor = {
   type: String,
 };
 
+export interface TargetDescriptor {
+  multiple: boolean;
+}
+
 export abstract class ChadElement extends HTMLElement {
-  static properties: Map<PropertyKey, PropertyInfo>;
-  static attributesToProperties: Map<string, PropertyKey>;
-  static propertiesToAttributes: Map<PropertyKey, string>;
+  static chadName: String;
+
+  private static properties: Map<PropertyKey, PropDescriptor>;
+  private static attributesToProperties: Map<string, PropertyKey>;
+  private static propertiesToAttributes: Map<PropertyKey, string>;
 
   private propertyStore: Map<PropertyKey, Signal<unknown>> = new Map();
 
@@ -32,7 +41,7 @@ export abstract class ChadElement extends HTMLElement {
     return this.attributesToProperties?.keys();
   }
 
-  static addProp(key: PropertyKey, options = defaultPropertyInfo): PropertyDescriptor {
+  static addProp(key: PropertyKey, options = defaultPropDescriptor): PropertyDescriptor {
     this.properties ||= new Map();
     this.attributesToProperties ||= new Map();
     this.propertiesToAttributes ||= new Map();
@@ -46,8 +55,6 @@ export abstract class ChadElement extends HTMLElement {
 
     return {
       get(this: ChadElement) {
-        console.log("dude im like totally gaming rn");
-
         return this.propertyStore.get(key)?.value;
       },
       set(this: ChadElement, value: unknown) {
@@ -66,7 +73,25 @@ export abstract class ChadElement extends HTMLElement {
         this.updatePropertyType(key, value);
         this.setAttributeFromProperty(key, oldValue, value);
       },
-      configurable: true,
+      enumerable: true,
+    };
+  }
+
+  static addTarget(key: PropertyKey, descriptor: TargetDescriptor): PropertyDescriptor {
+    return {
+      get(this: ChadElement) {
+        const attribute = `[target="${chadElementConstructor(this).chadName}.${dasherize(key.toString())}"]`;
+        const elements = Array.from(this.querySelectorAll(attribute));
+
+        // TODO: Should this raise instead of returning null? Ensures type-safety?
+        if (!elements.length) return null;
+
+        if (descriptor.multiple) {
+          return elements;
+        }
+
+        return elements[0];
+      },
       enumerable: true,
     };
   }
@@ -90,15 +115,15 @@ export abstract class ChadElement extends HTMLElement {
   private setPropertyFromAttribute(attribute: string, oldValue: string, newValue: string) {
     if (oldValue === newValue) return;
 
-    const ctor = this.constructor as typeof ChadElement;
-    const key = ctor.attributesToProperties.get(attribute);
+    const constructor = chadElementConstructor(this);
+    const key = constructor.attributesToProperties.get(attribute);
 
     if (!key) return;
 
     if (newValue === null || newValue === undefined) {
       this.propertyStore.delete(key);
     } else {
-      const type = ctor.properties.get(key)?.type;
+      const type = constructor.properties.get(key)?.type;
 
       if (!type) return;
 
@@ -118,8 +143,6 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private updatePropertyType(key: PropertyKey, value: any) {
-    const ctor = this.constructor as typeof ChadElement;
-
-    ctor.properties.set(key, { type: value.constructor });
+    chadElementConstructor(this).properties.set(key, { type: value.constructor });
   }
 }
