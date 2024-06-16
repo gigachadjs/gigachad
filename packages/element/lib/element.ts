@@ -32,6 +32,12 @@ export abstract class ChadElement extends HTMLElement {
 
   disconnected() {}
 
+  dispatch(name: string, options?: CustomEventInit<unknown>, prefix?: string) {
+    prefix ||= chadElementConstructor(this).chadName;
+
+    this.dispatchEvent(new CustomEvent(`${prefix}:${name}`, options));
+  }
+
   private connectedCallback() {
     this.setupActions();
 
@@ -158,7 +164,11 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private setupActions() {
-    for (const element of Array.from(this.querySelectorAll(`[action]`))) {
+    const elements = Array.from(this.querySelectorAll(`[action]`));
+
+    elements.push(this);
+
+    for (const element of elements) {
       this.setupActionsOn(element);
     }
   }
@@ -178,7 +188,11 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private teardownActions() {
-    for (const element of Array.from(this.querySelectorAll(`[action]`))) {
+    const elements = Array.from(this.querySelectorAll(`[action]`));
+
+    elements.push(this);
+
+    for (const element of elements) {
       this.teardownActionsOn(element);
     }
   }
