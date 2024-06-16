@@ -2,10 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "noEmit": false,
-    "paths": {
-      "@/*": ["./lib/*"]
-    }
+    "noEmit": false
   },
   "include": ["lib"],
   "exclude": ["node_modules", "dist"]

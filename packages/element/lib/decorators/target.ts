@@ -1,4 +1,4 @@
-import { chadElementConstructor, TargetDescriptor } from "@/element";
+import { chadElementConstructor, TargetDescriptor } from "../element";
 
 export function target(classObject: Object, key: PropertyKey) {
   defineTarget(classObject, key, { multiple: false });

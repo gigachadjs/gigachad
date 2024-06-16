@@ -1,4 +1,4 @@
-import { ChadElement, chadElementConstructor } from "@/element";
+import { ChadElement, chadElementConstructor } from "../element";
 
 export function prop(classObject: Object, key: PropertyKey) {
   const descriptor = chadElementConstructor(classObject).addProp(key);

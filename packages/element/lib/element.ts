@@ -1,6 +1,7 @@
 import { dasherize } from "@gigachad/support";
-import { decode, encode } from "@/encoding";
+import { decode, encode } from "./encoding";
 import { Signal, signal } from "@preact/signals-core";
+import { defaultAction } from "./actions";
 
 export function chadElementConstructor(object: Object) {
   return object.constructor as typeof ChadElement;
@@ -174,8 +175,8 @@ export abstract class ChadElement extends HTMLElement {
       .filter((action) => action)
       .filter((action) => action.includes(chadName))
       .forEach((action) => {
-        const eventName = action.split("->")[0]; // TODO: Default actions
-        const method = action.split("#")[1]; // TODO: Default actions
+        const eventName = action.split("->")[0] || defaultAction(element);
+        const method = action.split("#")[1] || action.split("->")[1];
 
         element.addEventListener(eventName, (this as any)[method], true);
       });
@@ -199,8 +200,8 @@ export abstract class ChadElement extends HTMLElement {
       .filter((action) => action)
       .filter((action) => action.includes(chadName))
       .forEach((action) => {
-        const eventName = action.split("->")[0]; // TODO: Default actions
-        const method = action.split("#")[1]; // TODO: Default actions
+        const eventName = action.split("->")[0] || defaultAction(element);
+        const method = action.split("#")[1] || action.split("->")[1];
 
         element.removeEventListener(eventName, (this as any)[method], true);
       });
