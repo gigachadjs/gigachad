@@ -1,5 +1,5 @@
 import { dasherize } from "@gigachad/support";
-import { ChadElement, chadElementConstructor } from "../element";
+import { ChadElement } from "../element";
 
 type Constructor<T> = {
   new (...args: any[]): T;

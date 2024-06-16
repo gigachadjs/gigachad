@@ -1,6 +1,7 @@
 import { dasherize } from "@gigachad/support";
 import { decode, encode } from "./encoding";
 import { Signal, signal } from "@preact/signals-core";
+import { addActionEventListener, removeActionEventListener } from "./actions";
 
 export function chadElementConstructor(object: Object) {
   return object.constructor as typeof ChadElement;
@@ -19,7 +20,7 @@ export interface TargetDescriptor {
 }
 
 export abstract class ChadElement extends HTMLElement {
-  static chadName: String;
+  static chadName: string;
 
   private static properties: Map<PropertyKey, PropDescriptor>;
   private static attributesToProperties: Map<string, PropertyKey>;
@@ -29,8 +30,24 @@ export abstract class ChadElement extends HTMLElement {
 
   connected() {}
 
+  disconnected() {}
+
+  dispatch(name: string, options?: CustomEventInit<unknown>, prefix?: string) {
+    prefix ||= chadElementConstructor(this).chadName;
+
+    this.dispatchEvent(new CustomEvent(`${prefix}:${name}`, options));
+  }
+
   private connectedCallback() {
+    this.setupActions();
+
     this.connected();
+  }
+
+  private disconnectedCallback() {
+    this.teardownActions();
+
+    this.disconnected();
   }
 
   private attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -144,5 +161,53 @@ export abstract class ChadElement extends HTMLElement {
 
   private updatePropertyType(key: PropertyKey, value: any) {
     chadElementConstructor(this).properties.set(key, { type: value.constructor });
+  }
+
+  private setupActions() {
+    const elements = Array.from(this.querySelectorAll(`[action]`));
+
+    elements.push(this);
+
+    for (const element of elements) {
+      this.setupActionsOn(element);
+    }
+  }
+
+  private setupActionsOn(element: Element) {
+    const actions = element.getAttribute("action")?.split(" ");
+
+    if (!actions) return;
+
+    const chadName = chadElementConstructor(this).chadName;
+
+    actions
+      .map((action) => action.replace("\n", ""))
+      .filter((action) => action)
+      .filter((action) => action.includes(chadName))
+      .forEach((action) => addActionEventListener(action, element, this));
+  }
+
+  private teardownActions() {
+    const elements = Array.from(this.querySelectorAll(`[action]`));
+
+    elements.push(this);
+
+    for (const element of elements) {
+      this.teardownActionsOn(element);
+    }
+  }
+
+  private teardownActionsOn(element: Element) {
+    const actions = element.getAttribute("action")?.split(" ");
+
+    if (!actions) return;
+
+    const chadName = chadElementConstructor(this).chadName;
+
+    actions
+      .map((action) => action.replace("\n", ""))
+      .filter((action) => action)
+      .filter((action) => action.includes(chadName))
+      .forEach((action) => removeActionEventListener(action, element, this));
   }
 }
