@@ -4,7 +4,9 @@ import { createRoot, hydrateRoot, Root } from "react-dom/client";
 
 class RequiresRootError extends Error {
   constructor() {
-    super('`react-partial` element requires a root target. Please add a child with `target="react-partial.root"`');
+    super(
+      '`react-partial` element requires a root target. Please add a child with `target="react-partial.reactRoot"`'
+    );
   }
 }
 
@@ -24,18 +26,16 @@ class ComponentNotRegisteredError extends Error {
   }
 }
 
-class ReactPartialElement extends ChadElement {
+export class ReactPartialElement extends ChadElement {
   @target declare embeddedProps: HTMLScriptElement;
-  @target declare root: HTMLElement;
+  @target declare reactRoot: HTMLElement;
 
   @prop declare name: string;
   @prop ssr = false;
 
-  private declare reactRoot: Root;
+  private declare root: Root;
 
   connected() {
-    console.log(this);
-
     this.throwUnlessNamePresent();
     this.throwUnlessRootPresent();
 
@@ -48,21 +48,23 @@ class ReactPartialElement extends ChadElement {
 
   mount() {
     if (this.ssr) {
-      this.reactRoot = hydrateRoot(this.root, this.reactComponent);
+      this.root = hydrateRoot(this.reactRoot, this.reactComponent);
 
       return;
     }
 
-    this.reactRoot = createRoot(this.root);
-    this.reactRoot.render(this.reactComponent);
+    this.root = createRoot(this.reactRoot);
+    this.root.render(this.reactComponent);
   }
 
   unmount() {
-    this.reactRoot.unmount();
+    this.root.unmount();
   }
 
-  private get props() {
-    const trimmed = this.embeddedProps?.textContent?.trim() || "{}";
+  private get reactProps() {
+    if (!this.embeddedProps?.textContent) return {};
+
+    const trimmed = this.embeddedProps.textContent.trim();
 
     return JSON.parse(trimmed);
   }
@@ -72,7 +74,7 @@ class ReactPartialElement extends ChadElement {
 
     if (!componentConstructor) throw new ComponentNotRegisteredError(this.name);
 
-    return createElement(componentConstructor, this.props);
+    return createElement(componentConstructor, this.reactProps);
   }
 
   private throwUnlessNamePresent() {
@@ -82,7 +84,7 @@ class ReactPartialElement extends ChadElement {
   }
 
   private throwUnlessRootPresent() {
-    if (!this.root) {
+    if (!this.reactRoot) {
       throw new RequiresRootError();
     }
   }
@@ -91,7 +93,7 @@ class ReactPartialElement extends ChadElement {
 export class ChadReactPartial {
   static registry = new Map<string, ComponentClass | FunctionComponent>();
 
-  static registerComponent(name: string, component: ComponentClass | FunctionComponent) {
+  static registerComponent(name: string, component: ComponentClass<any> | FunctionComponent<any>) {
     this.registry.set(name, component);
   }
 
