@@ -148,7 +148,7 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private updatePropertyType(key: PropertyKey, value: any) {
-    if (!value) return;
+    if (value === null || value === undefined) return;
 
     chadElementConstructor(this).properties.set(key, { type: value.constructor });
   }
@@ -202,12 +202,28 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private setDeclaredProps() {
-    const properties = chadElementConstructor(this).properties.keys();
+    const properties = chadElementConstructor(this).properties;
 
-    for (const property of properties) {
-      if (this.propertyStore.has(property)) continue;
+    for (const property of properties.keys()) {
+      const attrKey = chadElementConstructor(this).propertiesToAttributes.get(property);
 
-      this.setProp(property, (this as any)[property]);
+      const declaredValue = (this as any)[property];
+
+      if (declaredValue !== undefined && declaredValue !== null) {
+        this.updatePropertyType(property, declaredValue);
+      }
+
+      if (attrKey) {
+        const attrValue = this.getAttribute(property.toString());
+
+        if (!attrValue) continue;
+
+        this.setPropertyFromAttribute(property.toString(), declaredValue, attrValue);
+      } else {
+        this.setProp(property, declaredValue);
+      }
+
+      delete (this as any)[property];
     }
   }
 
