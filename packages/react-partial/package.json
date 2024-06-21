@@ -1,0 +1,24 @@
+{
+  "name": "@gigachad/react-partial",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint ./lib --max-warnings 0",
+    "build": "tsc --build ",
+    "dev": "tsc --build  --watch"
+  },
+  "dependencies": {
+    "@gigachad/element": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.3.3"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js"
+}

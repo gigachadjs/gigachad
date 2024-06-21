@@ -40,6 +40,7 @@ export abstract class ChadElement extends HTMLElement {
 
   private connectedCallback() {
     this.setupActions();
+    this.setDeclaredProps();
 
     this.connected();
   }
@@ -75,20 +76,7 @@ export abstract class ChadElement extends HTMLElement {
         return this.propertyStore.get(key)?.value;
       },
       set(this: ChadElement, value: unknown) {
-        let internalSignal = this.propertyStore.get(key);
-
-        if (!internalSignal) {
-          internalSignal = signal(null);
-
-          this.propertyStore.set(key, internalSignal);
-        }
-
-        const oldValue = internalSignal.value;
-
-        internalSignal.value = value;
-
-        this.updatePropertyType(key, value);
-        this.setAttributeFromProperty(key, oldValue, value);
+        this.setProp(key, value);
       },
       enumerable: true,
     };
@@ -97,7 +85,7 @@ export abstract class ChadElement extends HTMLElement {
   static addTarget(key: PropertyKey, descriptor: TargetDescriptor): PropertyDescriptor {
     return {
       get(this: ChadElement) {
-        const attribute = `[target="${chadElementConstructor(this).chadName}.${dasherize(key.toString())}"]`;
+        const attribute = `[target="${chadElementConstructor(this).chadName}.${key.toString()}"]`;
         const elements = Array.from(this.querySelectorAll(attribute));
 
         // TODO: Should this raise instead of returning null? Ensures type-safety?
@@ -160,6 +148,8 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   private updatePropertyType(key: PropertyKey, value: any) {
+    if (!value) return;
+
     chadElementConstructor(this).properties.set(key, { type: value.constructor });
   }
 
@@ -209,5 +199,32 @@ export abstract class ChadElement extends HTMLElement {
       .filter((action) => action)
       .filter((action) => action.includes(chadName))
       .forEach((action) => removeActionEventListener(action, element, this));
+  }
+
+  private setDeclaredProps() {
+    const properties = chadElementConstructor(this).properties.keys();
+
+    for (const property of properties) {
+      if (this.propertyStore.has(property)) continue;
+
+      this.setProp(property, (this as any)[property]);
+    }
+  }
+
+  private setProp(key: PropertyKey, value: unknown) {
+    let internalSignal = this.propertyStore.get(key);
+
+    if (!internalSignal) {
+      internalSignal = signal(null);
+
+      this.propertyStore.set(key, internalSignal);
+    }
+
+    const oldValue = internalSignal.value;
+
+    internalSignal.value = value;
+
+    this.updatePropertyType(key, value);
+    this.setAttributeFromProperty(key, oldValue, value);
   }
 }
