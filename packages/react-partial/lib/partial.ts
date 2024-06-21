@@ -37,7 +37,6 @@ export class ReactPartialElement extends ChadElement {
 
   connected() {
     this.throwUnlessNamePresent();
-    this.throwUnlessRootPresent();
 
     this.mount();
   }
@@ -48,12 +47,12 @@ export class ReactPartialElement extends ChadElement {
 
   mount() {
     if (this.ssr) {
-      this.root = hydrateRoot(this.reactRoot, this.reactComponent);
+      this.root = hydrateRoot(this.reactRoot || this, this.reactComponent);
 
       return;
     }
 
-    this.root = createRoot(this.reactRoot);
+    this.root = createRoot(this.reactRoot || this);
     this.root.render(this.reactComponent);
   }
 
