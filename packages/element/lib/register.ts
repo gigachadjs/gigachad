@@ -8,6 +8,7 @@ import {
   setupAttributes,
   startCollectingAttrs,
 } from "./attributes";
+import { startCollectingActions, endCollectingActions, setupActions } from "./actions";
 
 type Constructor<T> = {
   new (...args: any[]): T;
@@ -41,12 +42,15 @@ export function registerChadElement(elementFunction: ChadFunctionalElement) {
   const klass = class extends ChadElement {
     connectedCallback() {
       startCollectingAttrs();
+      startCollectingActions();
       setInitialAttrValuesFromDOM.bind(this)();
 
       elementFunction();
 
       setupAttributes.bind(this)();
+      setupActions.bind(this)();
 
+      endCollectingActions();
       resetInitialAttrValuesFromDOM();
       endCollectingAttrs();
 
