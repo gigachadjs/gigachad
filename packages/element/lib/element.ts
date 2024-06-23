@@ -1,156 +1,64 @@
-import { dasherize } from "@gigachad/support";
-import { decode, encode } from "./encoding";
-import { Signal, signal } from "@preact/signals-core";
+import { Signal } from "@preact/signals-core";
 import { addActionEventListener, removeActionEventListener } from "./actions";
+import { decode } from "./encoding";
+
+type Constructor<T> = {
+  new (...args: any[]): T;
+};
 
 export function chadElementConstructor(object: Object) {
   return object.constructor as typeof ChadElement;
 }
 
-interface PropDescriptor<TypeHint = unknown> {
-  type: TypeHint;
-}
-
-const defaultPropDescriptor: PropDescriptor = {
-  type: String,
-};
-
-export interface TargetDescriptor {
-  multiple: boolean;
-}
-
 export abstract class ChadElement extends HTMLElement {
   static chadName: string;
 
-  private static properties: Map<PropertyKey, PropDescriptor>;
-  private static attributesToProperties: Map<string, PropertyKey>;
-  private static propertiesToAttributes: Map<PropertyKey, string>;
+  static attributeConstructorMap: Map<string, Constructor<any>>;
 
-  private propertyStore: Map<PropertyKey, Signal<unknown>> = new Map();
+  attributeSignalMap: Map<string, Signal<unknown>> = new Map();
 
-  connected() {}
-
-  disconnected() {}
-
-  dispatch(name: string, options?: CustomEventInit<unknown>, prefix?: string) {
-    prefix ||= chadElementConstructor(this).chadName;
-
-    this.dispatchEvent(new CustomEvent(`${prefix}:${name}`, options));
-  }
-
-  private connectedCallback() {
+  connectedCallback() {
     this.setupActions();
-    this.setDeclaredProps();
 
-    this.connected();
+    this.observe();
   }
 
-  private disconnectedCallback() {
+  disconnectedCallback() {
     this.teardownActions();
-
-    this.disconnected();
   }
 
-  private attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    this.setPropertyFromAttribute(name, oldValue, newValue);
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    if (oldValue === newValue) return;
+
+    const type = chadElementConstructor(this).attributeConstructorMap.get(name);
+
+    if (!type) return;
+
+    const signal = this.attributeSignalMap.get(name);
+
+    if (!signal) return;
+
+    signal.value = newValue === null ? null : decode(newValue, type);
   }
 
-  static get observedAttributes() {
-    return this.attributesToProperties?.keys();
-  }
-
-  static addProp(key: PropertyKey, options = defaultPropDescriptor): PropertyDescriptor {
-    this.properties ||= new Map();
-    this.attributesToProperties ||= new Map();
-    this.propertiesToAttributes ||= new Map();
-
-    this.properties.set(key, options);
-
-    const attr = dasherize(String(key));
-
-    this.attributesToProperties.set(attr, key);
-    this.propertiesToAttributes.set(key, attr);
-
-    return {
-      get(this: ChadElement) {
-        return this.propertyStore.get(key)?.value;
-      },
-      set(this: ChadElement, value: unknown) {
-        this.setProp(key, value);
-      },
-      enumerable: true,
-    };
-  }
-
-  static addTarget(key: PropertyKey, descriptor: TargetDescriptor): PropertyDescriptor {
-    return {
-      get(this: ChadElement) {
-        const attribute = `[target="${chadElementConstructor(this).chadName}.${key.toString()}"]`;
-        const elements = Array.from(this.querySelectorAll(attribute));
-
-        // TODO: Should this raise instead of returning null? Ensures type-safety?
-        if (!elements.length) return null;
-
-        if (descriptor.multiple) {
-          return elements;
+  observe() {
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes") {
+          this.attributeChangedCallback(
+            mutation.attributeName!,
+            mutation.oldValue,
+            this.getAttribute(mutation.attributeName!)
+          );
         }
-
-        return elements[0];
-      },
-      enumerable: true,
-    };
-  }
-
-  private setAttributeFromProperty(key: PropertyKey, oldValue: unknown, newValue: unknown) {
-    if (oldValue === newValue) return;
-
-    const ctor = this.constructor as typeof ChadElement;
-    const attribute = ctor.propertiesToAttributes.get(key);
-
-    if (!attribute) return;
-
-    if (newValue === null || newValue === undefined) {
-      this.removeAttribute(attribute);
-    } else {
-      this.updatePropertyType(key, newValue);
-      this.setAttribute(attribute, encode(newValue));
-    }
-  }
-
-  private setPropertyFromAttribute(attribute: string, oldValue: string, newValue: string) {
-    if (oldValue === newValue) return;
-
-    const constructor = chadElementConstructor(this);
-    const key = constructor.attributesToProperties.get(attribute);
-
-    if (!key) return;
-
-    if (newValue === null || newValue === undefined) {
-      this.propertyStore.delete(key);
-    } else {
-      const type = constructor.properties.get(key)?.type;
-
-      if (!type) return;
-
-      let internalSignal = this.propertyStore.get(key);
-
-      const value = decode(newValue, type);
-
-      if (!internalSignal) {
-        internalSignal = signal(value);
-
-        this.propertyStore.set(key, internalSignal);
-        return;
       }
+    });
 
-      internalSignal.value = value;
-    }
-  }
-
-  private updatePropertyType(key: PropertyKey, value: any) {
-    if (value === null || value === undefined) return;
-
-    chadElementConstructor(this).properties.set(key, { type: value.constructor });
+    observer.observe(this, {
+      attributes: true,
+      attributeOldValue: true,
+      attributeFilter: Array.from(this.attributeSignalMap.keys()),
+    });
   }
 
   private setupActions() {
@@ -199,48 +107,5 @@ export abstract class ChadElement extends HTMLElement {
       .filter((action) => action)
       .filter((action) => action.includes(chadName))
       .forEach((action) => removeActionEventListener(action, element, this));
-  }
-
-  private setDeclaredProps() {
-    const properties = chadElementConstructor(this).properties;
-
-    for (const property of properties.keys()) {
-      const attrKey = chadElementConstructor(this).propertiesToAttributes.get(property);
-
-      const declaredValue = (this as any)[property];
-
-      if (declaredValue !== undefined && declaredValue !== null) {
-        this.updatePropertyType(property, declaredValue);
-      }
-
-      if (attrKey) {
-        const attrValue = this.getAttribute(property.toString());
-
-        if (!attrValue) continue;
-
-        this.setPropertyFromAttribute(property.toString(), declaredValue, attrValue);
-      } else {
-        this.setProp(property, declaredValue);
-      }
-
-      delete (this as any)[property];
-    }
-  }
-
-  private setProp(key: PropertyKey, value: unknown) {
-    let internalSignal = this.propertyStore.get(key);
-
-    if (!internalSignal) {
-      internalSignal = signal(null);
-
-      this.propertyStore.set(key, internalSignal);
-    }
-
-    const oldValue = internalSignal.value;
-
-    internalSignal.value = value;
-
-    this.updatePropertyType(key, value);
-    this.setAttributeFromProperty(key, oldValue, value);
   }
 }

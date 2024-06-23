@@ -2,14 +2,6 @@ import { ChadElement, prop, register, target } from "@gigachad/element";
 import { ComponentClass, createElement, FunctionComponent } from "react";
 import { createRoot, hydrateRoot, Root } from "react-dom/client";
 
-class RequiresRootError extends Error {
-  constructor() {
-    super(
-      '`react-partial` element requires a root target. Please add a child with `target="react-partial.reactRoot"`'
-    );
-  }
-}
-
 class RequiresNameError extends Error {
   constructor() {
     super(
@@ -79,12 +71,6 @@ export class ReactPartialElement extends ChadElement {
   private throwUnlessNamePresent() {
     if (!this.name) {
       throw new RequiresNameError();
-    }
-  }
-
-  private throwUnlessRootPresent() {
-    if (!this.reactRoot) {
-      throw new RequiresRootError();
     }
   }
 }
