@@ -10,6 +10,7 @@ import {
 } from "./attributes";
 import { startCollectingActions, endCollectingActions, setupActions } from "./actions";
 import { endCollectingTargets, startCollectingTargets } from "./targets";
+import { endCollectingMountCallbacks, setupMountCallbacks, startCollectingMountCallbacks } from "./mounting";
 
 type Constructor<T> = {
   new (...args: any[]): T;
@@ -46,12 +47,15 @@ export function registerChadElement(elementFunction: ChadFunctionalElement) {
       startCollectingActions();
       setInitialAttrValuesFromDOM.bind(this)();
       startCollectingTargets.bind(this)();
+      startCollectingMountCallbacks();
 
       elementFunction();
 
       setupAttributes.bind(this)();
       setupActions.bind(this)();
+      setupMountCallbacks.bind(this)();
 
+      endCollectingMountCallbacks();
       endCollectingTargets();
       endCollectingActions();
       resetInitialAttrValuesFromDOM();

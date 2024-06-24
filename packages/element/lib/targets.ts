@@ -14,11 +14,11 @@ export function useTarget<T extends HTMLElement>(name: string) {
 
   Object.defineProperty(currentChadElement, name, {
     get(this: ChadElement) {
-      return this.querySelector(attribute) as T;
+      return this.querySelector<T>(attribute);
     },
   });
 
-  return currentChadElement!.querySelector(attribute) as T;
+  return currentChadElement!.querySelector<T>(attribute);
 }
 
 export function endCollectingTargets() {
