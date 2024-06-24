@@ -9,6 +9,7 @@ import {
   startCollectingAttrs,
 } from "./attributes";
 import { startCollectingActions, endCollectingActions, setupActions } from "./actions";
+import { endCollectingTargets, startCollectingTargets } from "./targets";
 
 type Constructor<T> = {
   new (...args: any[]): T;
@@ -44,12 +45,14 @@ export function registerChadElement(elementFunction: ChadFunctionalElement) {
       startCollectingAttrs();
       startCollectingActions();
       setInitialAttrValuesFromDOM.bind(this)();
+      startCollectingTargets.bind(this)();
 
       elementFunction();
 
       setupAttributes.bind(this)();
       setupActions.bind(this)();
 
+      endCollectingTargets();
       endCollectingActions();
       resetInitialAttrValuesFromDOM();
       endCollectingAttrs();

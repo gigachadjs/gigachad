@@ -27,6 +27,8 @@ let actionsMap: Map<string, ActionFn>;
 
 export function useAction(name: string, action: ActionFn) {
   actionsMap.set(name, action);
+
+  return action;
 }
 
 export function startCollectingActions() {
