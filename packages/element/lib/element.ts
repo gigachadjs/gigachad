@@ -17,19 +17,19 @@ export abstract class ChadElement extends HTMLElement {
 
   attributeSignalMap: Map<string, Signal<unknown>> = new Map();
 
-  connected() {}
-  disconnected() {}
+  connected(element: ChadElement) {}
+  disconnected(element: ChadElement) {}
 
   connectedCallback() {
     this.setupActions();
 
     this.observe();
 
-    this.connected();
+    this.connected(this);
   }
 
   disconnectedCallback() {
-    this.disconnected();
+    this.disconnected(this);
 
     this.teardownActions();
   }

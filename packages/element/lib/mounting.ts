@@ -1,6 +1,6 @@
 import { ChadElement } from "./element";
 
-type MountingCallback = () => void;
+type MountingCallback = (element: ChadElement) => void;
 
 let connected: MountingCallback | null;
 let disconnected: MountingCallback | null;

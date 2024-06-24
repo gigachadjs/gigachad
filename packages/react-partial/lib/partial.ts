@@ -1,6 +1,13 @@
-import { ChadElement, prop, register, target } from "@gigachad/element";
-import { ComponentClass, createElement, FunctionComponent } from "react";
-import { createRoot, hydrateRoot, Root } from "react-dom/client";
+import {
+  type ChadElement,
+  onConnected,
+  onDisconnected,
+  registerChadElement,
+  useAttr,
+  useTarget,
+} from "@gigachad/element";
+import { type Attributes, type ComponentClass, createElement, type FunctionComponent } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 
 class RequiresNameError extends Error {
   constructor() {
@@ -18,61 +25,51 @@ class ComponentNotRegisteredError extends Error {
   }
 }
 
-export class ReactPartialElement extends ChadElement {
-  @target declare embeddedProps: HTMLScriptElement;
-  @target declare reactRoot: HTMLElement;
+function reactComponent(name: string, props?: Attributes) {
+  const componentConstructor = ChadReactPartial.registry.get(name);
 
-  @prop declare name: string;
-  @prop ssr = false;
+  if (!componentConstructor) throw new ComponentNotRegisteredError(name);
 
-  private declare root: Root;
+  return createElement(componentConstructor, props);
+}
 
-  connected() {
-    this.throwUnlessNamePresent();
+function reactProps(embedded: string | null | undefined) {
+  if (!embedded) return {};
 
-    this.mount();
-  }
+  const trimmed = embedded.trim();
 
-  disconnect() {
-    this.unmount();
-  }
+  return JSON.parse(trimmed);
+}
 
-  mount() {
-    if (this.ssr) {
-      this.root = hydrateRoot(this.reactRoot || this, this.reactComponent);
+export function ReactPartialElement() {
+  const embeddedPropsTarget = useTarget("embeddedProps");
+  const rootTarget = useTarget("reactRoot");
 
+  const nameAttr = useAttr("name", "");
+  const ssrAttr = useAttr("ssr", false);
+
+  let root: Root;
+
+  onConnected((element) => {
+    if (!nameAttr.value) {
+      throw new RequiresNameError();
+    }
+
+    const props = reactProps(embeddedPropsTarget?.textContent);
+    const component = reactComponent(nameAttr.value, props);
+
+    if (ssrAttr.value) {
+      root = hydrateRoot(rootTarget || element, component);
       return;
     }
 
-    this.root = createRoot(this.reactRoot || this);
-    this.root.render(this.reactComponent);
-  }
+    root = createRoot(rootTarget || element);
+    root.render(component);
+  });
 
-  unmount() {
-    this.root.unmount();
-  }
-
-  private get reactProps() {
-    if (!this.embeddedProps?.textContent) return {};
-
-    const trimmed = this.embeddedProps.textContent.trim();
-
-    return JSON.parse(trimmed);
-  }
-
-  private get reactComponent() {
-    const componentConstructor = ChadReactPartial.registry.get(this.name);
-
-    if (!componentConstructor) throw new ComponentNotRegisteredError(this.name);
-
-    return createElement(componentConstructor, this.reactProps);
-  }
-
-  private throwUnlessNamePresent() {
-    if (!this.name) {
-      throw new RequiresNameError();
-    }
-  }
+  onDisconnected(() => {
+    root.unmount();
+  });
 }
 
 export class ChadReactPartial {
@@ -83,6 +80,6 @@ export class ChadReactPartial {
   }
 
   static start() {
-    register(ReactPartialElement);
+    registerChadElement(ReactPartialElement);
   }
 }
