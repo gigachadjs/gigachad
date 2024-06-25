@@ -29,9 +29,9 @@ export abstract class ChadElement extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.disconnected(this);
-
     this.teardownActions();
+
+    this.disconnected(this);
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {

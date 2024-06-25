@@ -8,7 +8,7 @@ import {
   setupAttributes,
   startCollectingAttrs,
 } from "./attributes";
-import { startCollectingActions, endCollectingActions, setupActions } from "./actions";
+import { startCollectingActions, endCollectingActions, setupActions, useAction } from "./actions";
 import { endCollectingTargets, startCollectingTargets } from "./targets";
 import { endCollectingMountCallbacks, setupMountCallbacks, startCollectingMountCallbacks } from "./mounting";
 
@@ -18,12 +18,9 @@ type Constructor<T> = {
 
 class InvalidElementNameError extends Error {}
 
-interface ChadElementDescriptor {
-  props?: Record<any, any | Signal>;
-  actions?: Record<any, (...args: any[]) => void>;
-}
+type ChadElementDescriptor = Record<any, (...args: any[]) => void>;
 
-type ChadFunctionalElement = (...args: string[]) => void;
+type ChadFunctionalElement = (...args: string[]) => ChadElementDescriptor | void;
 
 function register(name: string, classObject: Constructor<ChadElement>) {
   const chadName = dasherize(name).replace("-element", "");
@@ -49,7 +46,13 @@ export function registerChadElement(elementFunction: ChadFunctionalElement) {
       startCollectingTargets.bind(this)();
       startCollectingMountCallbacks();
 
-      elementFunction();
+      const actions = elementFunction();
+
+      if (actions) {
+        for (const [key, action] of Object.entries(actions)) {
+          useAction(key, action);
+        }
+      }
 
       setupAttributes.bind(this)();
       setupActions.bind(this)();

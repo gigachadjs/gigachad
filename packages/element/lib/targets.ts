@@ -12,6 +12,8 @@ export function useTarget<T extends HTMLElement>(name: string) {
   const chadName = chadElementConstructor(currentChadElement!).chadName;
   const attribute = `[target="${chadName}.${name}"]`;
 
+  if (currentChadElement?.hasOwnProperty(name)) return;
+
   Object.defineProperty(currentChadElement, name, {
     get(this: ChadElement) {
       return this.querySelector<T>(attribute);

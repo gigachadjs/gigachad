@@ -47,14 +47,16 @@ export function endCollectingActions() {
 
 export function addActionEventListener(raw: string, originalElement: Element, chadElement: ChadElement) {
   const { element, event, method, option } = decomposeAction(raw, originalElement);
-  const boundMethod = (chadElement as any)[method].bind(chadElement);
+  const boundMethod = (chadElement as any)[method];
 
   element.addEventListener(event, boundMethod, decomposeOptionForAdd(option));
 }
 
 export function removeActionEventListener(raw: string, originalElement: Element, chadElement: ChadElement) {
   const { element, event, method, option } = decomposeAction(raw, originalElement);
-  const boundMethod = (chadElement as any)[method].bind(chadElement);
+  const boundMethod = (chadElement as any)[method];
+
+  console.log(boundMethod);
 
   element.removeEventListener(event, boundMethod, decomposeOptionForRemove(option));
 }

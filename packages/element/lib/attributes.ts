@@ -18,6 +18,8 @@ export function setupAttributes(this: ChadElement) {
   for (const [key, signal] of this.attributeSignalMap) {
     effect(() => this.setAttribute(key, encode(signal.value)));
 
+    if (this.hasOwnProperty(key)) return;
+
     Object.defineProperty(this, key, {
       get(this: ChadElement) {
         return signal.value;
